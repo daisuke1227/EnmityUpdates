@@ -1,0 +1,85 @@
+name: Revenge Updates
+on:
+  workflow_dispatch:
+    inputs:
+      discord_link:
+        description: 'Enter the Discord IPA link'
+        required: true
+        type: string
+      discord_version:
+        description: 'Enter the version of Discord'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install pipx
+      run: |
+        sudo apt update
+        sudo apt install -y pipx
+        pipx ensurepath
+
+    - name: Install cyan and inject Pillow
+      run: |
+        pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
+        pipx inject cyan Pillow
+
+    - name: Download Discord IPA
+      run: |
+        mkdir ipa_contents
+        curl -L -o com.hammerandchisel.discord-${{ github.event.inputs.discord_version }}.ipa "${{ github.event.inputs.discord_link }}"
+
+    - name: Apply EnmityWithOpenInDiscord.cyan
+      run: cyan -i com.hammerandchisel.discord-${{ github.event.inputs.discord_version }}.ipa -z EnmityWithOpenInDiscord.cyan -o EnmityWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+
+    - name: Apply EnmityWithNotiferAndOpeninDiscord.cyan
+      run: cyan -i com.hammerandchisel.discord-${{ github.event.inputs.discord_version }}.ipa -z EnmityWithNotiferAndOpeninDiscord.cyan -o EnmityWithOpenInSafariAndNotifer-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+
+    - name: Upload IPA with OpenInSafari
+      uses: actions/upload-artifact@v3
+      with:
+        name: EnmityWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        path: ./EnmityWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+
+    - name: Upload IPA with OpenInSafariAndNotifier
+      uses: actions/upload-artifact@v3
+      with:
+        name: EnmityWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        path: ./EnmityWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.discord_version }}
+        release_name: Release v${{ github.event.inputs.discord_version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload IPA to GitHub Release (OpenInSafari)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./RevengeWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        asset_name: RevengeWithOpenInSafari-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        asset_content_type: application/octet-stream
+
+    - name: Upload IPA to GitHub Release (OpenInSafariAndNotifier)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./RevengeWithOpenInSafariAndNotifer-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        asset_name: RevengeWithOpenInSafariAndNotifer-${{ github.event.inputs.discord_version }}-Daisuke.ipa
+        asset_content_type: application/octet-stream
