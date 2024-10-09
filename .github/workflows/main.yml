@@ -1,4 +1,4 @@
-name: Revenge Updates
+name: Enmity Updates
 on:
   workflow_dispatch:
     inputs:
